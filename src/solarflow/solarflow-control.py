@@ -255,7 +255,7 @@ def on_message(client, userdata, msg):
     dtu.handleMsg(msg)
 
     # handle own messages (control parameters)
-    if msg.topic.startswith("solarflow-hub") and "control" in msg.topic and msg.payload:
+    if msg.topic.startswith("solarflow-hub") and "/control/" in msg.topic and msg.payload:
         parameter = msg.topic.split("/")[-1]
         value = msg.payload.decode()
         match parameter:
@@ -302,6 +302,9 @@ def on_message(client, userdata, msg):
                 ) if BATTERY_HIGH != int(value) else None
                 BATTERY_HIGH = int(value)
                 hub.updBatteryTargetSoCMax(BATTERY_HIGH)
+            case "publishHA":
+                log.info(f"mqtt trigger to publish Home Assistant templates...")
+                hub.pushHomeassistantConfig()
 
 
 def on_connect(client, userdata, flags, rc):
