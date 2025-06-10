@@ -115,10 +115,6 @@ BATTERY_DISCHARGE_START = config.getint(
 # the maximum allowed inverter output
 MAX_INVERTER_LIMIT = config.getint("control", "max_inverter_limit", fallback=None) or int(os.environ.get("MAX_INVERTER_LIMIT", 800))
 MAX_INVERTER_INPUT = config.getint("control", "max_inverter_input", fallback=None) or int(os.environ.get("MAX_INVERTER_INPUT", 400))
-MAX_INVERTER_LIMIT =    config.getint('control', 'max_inverter_limit', fallback=None) \
-                        or int(os.environ.get('MAX_INVERTER_LIMIT',800))
-MAX_INVERTER_INPUT =    config.getint('control', 'max_inverter_input', fallback=None) \
-                        or int(os.environ.get('MAX_INVERTER_INPUT',400))
 
 # this controls the internal calculation of limited growth for setting inverter limits
 INVERTER_START_LIMIT = 5
