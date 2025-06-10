@@ -211,7 +211,10 @@ class Solarflow:
             template = environment.get_template(hatemplate.name)
             cfg_type = hatemplate.name.split(".")[0]
             cfg_name = hatemplate.name.split(".")[1]
-            if cfg_name == "maxTemp" or cfg_name == "totalVol" or cfg_name == "soh":
+            if (
+                "battery_" in cfg_name
+            ):  # any config related to battery gets looped over all batteries
+                cfg_name = cfg_name[len("battery_") :]  # remove prefix for compability
                 for index, (serial, v) in enumerate(self.batteriesVol.items()):
                     hacfg = template.render(
                         product_id=self.productId,
