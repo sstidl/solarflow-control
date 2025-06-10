@@ -195,7 +195,7 @@ def on_config_message(client, userdata, msg):
         BATTERY_LOW, \
         BATTERY_HIGH
     # handle own messages (control parameters)
-    if msg.topic.startswith("solarflow-hub") and "control" in msg.topic and msg.payload:
+    if msg.topic.startswith("solarflow-hub") and "/control/" in msg.topic and msg.payload:
         parameter = msg.topic.split("/")[-1]
         value = msg.payload.decode()
         match parameter:
@@ -217,7 +217,7 @@ def on_config_message(client, userdata, msg):
             case "maxDischargePower":
                 MAX_DISCHARGE_POWER = int(value)
                 log.info(
-                    f"Found control/maxDiscahrgePiwer, set MAX_DISCHARGE_POWER to {MAX_DISCHARGE_POWER}W"
+                    f"Found control/maxDischargePower, set MAX_DISCHARGE_POWER to {MAX_DISCHARGE_POWER}W"
                 )
             case "dischargeDuringDaytime":
                 DISCHARGE_DURING_DAYTIME = str2bool(value)
