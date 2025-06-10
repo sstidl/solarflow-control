@@ -1,11 +1,9 @@
 from paho.mqtt import client as mqtt_client
-from datetime import datetime, timedelta
 import logging
 import json
 import sys
 from utils import TimewindowBuffer, RepeatedTimer, deep_get
 import requests
-from solarflow import Solarflow
 
 TRIGGER_DIFF = 10
 
@@ -107,8 +105,8 @@ class Smartmeter:
             self.last_trigger_value = self.getPower()
 
         # agressively try to avoid feed-in (below 0 W) if it comes from hub - but also honor the zero offset
-        if ( self.getPower() - self.zero_offset ) < 0 and self.getPreviousPower() < 0:
-            hub = self.client._userdata['hub']
+        if (self.getPower() - self.zero_offset) < 0 and self.getPreviousPower() < 0:
+            hub = self.client._userdata["hub"]
             if hub.getDischargePower() > 0:
                 self.trigger_callback(self.client)
 

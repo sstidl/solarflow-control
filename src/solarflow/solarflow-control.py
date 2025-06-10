@@ -1,6 +1,10 @@
-import random, time, logging, sys, getopt, os
+import random
+import time
+import logging
+import sys
+import getopt
+import os
 from datetime import datetime, timedelta
-from functools import reduce
 from paho.mqtt import client as mqtt_client
 from astral import LocationInfo
 from astral.sun import sun
@@ -15,7 +19,7 @@ from utils import RepeatedTimer, str2bool
 blue = "\x1b[34;20m"
 reset = "\x1b[0m"
 
-FORMAT = '%(asctime)s:%(levelname)s: %(message)s'
+FORMAT = "%(asctime)s:%(levelname)s: %(message)s"
 logging.basicConfig(stream=sys.stdout, level="INFO", format=FORMAT)
 log = logging.getLogger("")
 
@@ -87,17 +91,19 @@ SMT_TYPE = config.get("global", "smartmeter_type", fallback=None) or os.environ.
 MIN_CHARGE_POWER = None
 
 # The maximum discharge level of the packSoc. Even if there is more demand it will not go beyond that
-MAX_DISCHARGE_POWER =   config.getint('control', 'max_discharge_power', fallback=None) \
-                        or int(os.environ.get('MAX_DISCHARGE_POWER',145))   
+MAX_DISCHARGE_POWER = config.getint(
+    "control", "max_discharge_power", fallback=None
+) or int(os.environ.get("MAX_DISCHARGE_POWER", 145))
 
 # battery SoC levels to consider the battery full or empty
-BATTERY_LOW =           config.getint('control', 'battery_low', fallback=None) \
-                        or int(os.environ.get('BATTERY_LOW',0)) 
-BATTERY_HIGH =          config.getint('control', 'battery_high', fallback=None) \
-                        or int(os.environ.get('BATTERY_HIGH',100))
+BATTERY_LOW = config.getint("control", "battery_low", fallback=None) or int(
+    os.environ.get("BATTERY_LOW", 0)
+)
+BATTERY_HIGH = config.getint("control", "battery_high", fallback=None) or int(
+    os.environ.get("BATTERY_HIGH", 100)
+)
 # MQTT config topic: solarflow-hub/control/maxDischargePower
 # config.ini [control] max_discharge_power
-MAX_DISCHARGE_POWER = None
 
 # battery SoC levels for normal operation cycles (when not in charge through mode)
 # MQTT config topic: solarflow-hub/control/batteryTargetSoCMin
@@ -113,8 +119,12 @@ BATTERY_DISCHARGE_START = config.getint(
 ) or int(os.environ.get("BATTERY_DISCHARGE_START", 10))
 
 # the maximum allowed inverter output
-MAX_INVERTER_LIMIT = config.getint("control", "max_inverter_limit", fallback=None) or int(os.environ.get("MAX_INVERTER_LIMIT", 800))
-MAX_INVERTER_INPUT = config.getint("control", "max_inverter_input", fallback=None) or int(os.environ.get("MAX_INVERTER_INPUT", 400))
+MAX_INVERTER_LIMIT = config.getint(
+    "control", "max_inverter_limit", fallback=None
+) or int(os.environ.get("MAX_INVERTER_LIMIT", 800))
+MAX_INVERTER_INPUT = config.getint(
+    "control", "max_inverter_input", fallback=None
+) or int(os.environ.get("MAX_INVERTER_INPUT", 400))
 
 # this controls the internal calculation of limited growth for setting inverter limits
 INVERTER_START_LIMIT = 5
@@ -153,17 +163,78 @@ class MyLocation:
     def getCoordinates(self) -> tuple:
         lat = lon = 0.0
         try:
-            result = requests.get('http://ip-api.com/json/') # call without IP uses my IP
+            result = requests.get(
+                "http://ip-api.com/json/"
+            )  # call without IP uses my IP
             response = result.json()
-            log.info(f'IP Address: {response["query"]}')
-            log.info(f'Location: {response["city"]}, {response["regionName"]}, {response["country"]}')
-            log.info(f'Coordinates: (Lat: {response["lat"]}, Lng: {response["lon"]})')
+            log.info(f"IP Address: {response['query']}")
+            log.info(
+                f"Location: {response['city']}, {response['regionName']}, {response['country']}"
+            )
+            log.info(f"Coordinates: (Lat: {response['lat']}, Lng: {response['lon']})")
             lat = response["lat"]
             lon = response["lon"]
         except Exception as e:
-            log.error(f'Can\'t determine location from my IP. Location detection failed, no accurate sunrise/sunset detection possible',e.args)
+            log.error(
+                "Can't determine location from my IP. Location detection failed, no accurate sunrise/sunset detection possible",
+                e.args,
+            )
 
-        return (lat,lon)
+        return (lat, lon)
+
+
+def on_config_message(client, userdata, msg):
+    """The MQTT client callback function for intial connects - mainly retained messages, where we are not yet fully up and running but still read potential config parameters from MQTT"""
+
+    global \
+        SUNRISE_OFFSET, \
+        SUNSET_OFFSET, \
+        MIN_CHARGE_POWER, \
+        MAX_DISCHARGE_POWER, \
+        DISCHARGE_DURING_DAYTIME, \
+        BATTERY_LOW, \
+        BATTERY_HIGH
+    # handle own messages (control parameters)
+    if msg.topic.startswith("solarflow-hub") and "control" in msg.topic and msg.payload:
+        parameter = msg.topic.split("/")[-1]
+        value = msg.payload.decode()
+        match parameter:
+            case "sunriseOffset":
+                SUNRISE_OFFSET = int(value)
+                log.info(
+                    f"Found control/sunriseOffset, set SUNRISE_OFFSET to {SUNRISE_OFFSET} minutes"
+                )
+            case "sunsetOffset":
+                SUNSET_OFFSET = int(value)
+                log.info(
+                    f"Found control/sunsetOffset, set SUNSET_OFFSET to {SUNSET_OFFSET} minutes"
+                )
+            case "minChargePower":
+                MIN_CHARGE_POWER = int(value)
+                log.info(
+                    f"Found control/minChargePower, set MIN_CHARGE_POWER to {MIN_CHARGE_POWER}W"
+                )
+            case "maxDischargePower":
+                MAX_DISCHARGE_POWER = int(value)
+                log.info(
+                    f"Found control/maxDiscahrgePiwer, set MAX_DISCHARGE_POWER to {MAX_DISCHARGE_POWER}W"
+                )
+            case "dischargeDuringDaytime":
+                DISCHARGE_DURING_DAYTIME = str2bool(value)
+                log.info(
+                    f"Found control/dischargeDuringDaytime, set DISCHARGE_DURING_DAYTIME to {DISCHARGE_DURING_DAYTIME}"
+                )
+            case "batteryTargetSoCMin":
+                BATTERY_LOW = int(value)
+                log.info(
+                    f"Found control/batteryTargetSoCMin, set BATTERY_LOW to {BATTERY_LOW}%"
+                )
+            case "batteryTargetSoCMax":
+                BATTERY_HIGH = int(value)
+                log.info(
+                    f"Found control/batteryTargetSoCMax, set BATTERY_HIGH to {BATTERY_HIGH}%"
+                )
+
 
 def on_message(client, userdata, msg):
     """The MQTT client callback function for continous oepration, messages are delegated to hub, dtu and smartmeter handlers as well as own control parameter updates"""
@@ -189,17 +260,25 @@ def on_message(client, userdata, msg):
         value = msg.payload.decode()
         match parameter:
             case "sunriseOffset":
-                log.info(f'Updating SUNRISE_OFFSET to {int(value)} minutes') if SUNRISE_OFFSET != int(value) else None
+                log.info(
+                    f"Updating SUNRISE_OFFSET to {int(value)} minutes"
+                ) if SUNRISE_OFFSET != int(value) else None
                 SUNRISE_OFFSET = int(value)
             case "sunsetOffset":
-                log.info(f'Updating SUNSET_OFFSET to {int(value)} minutes') if SUNSET_OFFSET != int(value) else None
+                log.info(
+                    f"Updating SUNSET_OFFSET to {int(value)} minutes"
+                ) if SUNSET_OFFSET != int(value) else None
                 SUNSET_OFFSET = int(value)
             case "minChargePower":
-                log.info(f'Updating MIN_CHARGE_POWER to {int(value)}W') if MIN_CHARGE_POWER != int(value) else None
+                log.info(
+                    f"Updating MIN_CHARGE_POWER to {int(value)}W"
+                ) if MIN_CHARGE_POWER != int(value) else None
                 MIN_CHARGE_POWER = int(value)
             case "maxDischargePower":
-                log.info(f'Updating MAX_DISCHARGE_POWER to {int(value)}W') if MAX_DISCHARGE_POWER != int(value) else None
-                MAX_DISCHARGE_POWER = int(value) 
+                log.info(
+                    f"Updating MAX_DISCHARGE_POWER to {int(value)}W"
+                ) if MAX_DISCHARGE_POWER != int(value) else None
+                MAX_DISCHARGE_POWER = int(value)
             case "controlBypass":
                 log.info(f"Updating control bypass to {value}")
                 hub.setControlBypass(value)
@@ -207,14 +286,20 @@ def on_message(client, userdata, msg):
                 log.info(f"Updating full charge interval to {int(value)}hrs")
                 hub.updFullChargeInterval(int(value))
             case "dischargeDuringDaytime":
-                log.info(f'Updating DISCHARGE_DURING_DAYTIME to {str2bool(value)}') if DISCHARGE_DURING_DAYTIME != str2bool(value) else None
+                log.info(
+                    f"Updating DISCHARGE_DURING_DAYTIME to {str2bool(value)}"
+                ) if DISCHARGE_DURING_DAYTIME != str2bool(value) else None
                 DISCHARGE_DURING_DAYTIME = str2bool(value)
             case "batteryTargetSoCMin":
-                log.info(f'Updating BATTERY_LOW to {int(value)}%') if BATTERY_LOW != int(value) else None
+                log.info(
+                    f"Updating BATTERY_LOW to {int(value)}%"
+                ) if BATTERY_LOW != int(value) else None
                 BATTERY_LOW = int(value)
                 hub.updBatteryTargetSoCMin(BATTERY_LOW)
             case "batteryTargetSoCMax":
-                log.info(f'Updating BATTERY_HIGH to {int(value)}%') if BATTERY_HIGH != int(value) else None
+                log.info(
+                    f"Updating BATTERY_HIGH to {int(value)}%"
+                ) if BATTERY_HIGH != int(value) else None
                 BATTERY_HIGH = int(value)
                 hub.updBatteryTargetSoCMax(BATTERY_HIGH)
 
@@ -240,7 +325,7 @@ def connect_mqtt() -> mqtt_client:
         client.username_pw_set(mqtt_user, mqtt_pwd)
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
-    client.on_config_message = on_config_message
+    client.on_message = on_config_message
     client.connect(mqtt_host, mqtt_port)
     return client
 
@@ -315,20 +400,25 @@ def getSFPowerLimit(hub, demand) -> int:
             limit = hub.getInverseMaxPower()
 
     if not hub.getBypass():
-        path += "1." 
-        limit = min(demand,MAX_DISCHARGE_POWER)
+        path += "1."
+        limit = min(demand, MAX_DISCHARGE_POWER)
         if hub_solarpower - demand > MIN_CHARGE_POWER:
             if hub_solarpower - MIN_CHARGE_POWER < MAX_DISCHARGE_POWER:
                 path += "1. (enough power to cover demand and minimum charge power)"
-                #limit = min(demand,MAX_DISCHARGE_POWER)
+                # limit = min(demand,MAX_DISCHARGE_POWER)
             else:
                 path += "2."
-                limit = min(demand,hub_solarpower - MIN_CHARGE_POWER)
-        if hub_solarpower - demand <= MIN_CHARGE_POWER:  
+                limit = min(demand, hub_solarpower - MIN_CHARGE_POWER)
+        if hub_solarpower - demand <= MIN_CHARGE_POWER:
             path += "3."
-            if ((now < (sunrise + sunrise_off) or now > (sunset - sunset_off)) or DISCHARGE_DURING_DAYTIME) and  hub.daySoCIncrease > BATTERY_DISCHARGE_START:
+            if (
+                (now < (sunrise + sunrise_off) or now > (sunset - sunset_off))
+                or DISCHARGE_DURING_DAYTIME
+            ) and hub.daySoCIncrease > BATTERY_DISCHARGE_START:
                 path += "1. (not enough power to cover demand and minimum charge power during night/dusk/dawn)"
-            elif (sunrise < now < sunrise + sunrise_off) and hub_electricLevel > BATTERY_LOW:
+            elif (
+                sunrise < now < sunrise + sunrise_off
+            ) and hub_electricLevel > BATTERY_LOW:
                 path += "2. (enough battery after sunrise to continue discharge)"
             else:
                 path += "3. (not enough power to cover demand and minimum charge power during day)"
@@ -369,25 +459,29 @@ def getSFPowerLimit(hub, demand) -> int:
         # reset the dayly SoC increase
         hub.resetSocIncrease()
 
-    log.info(f'Based on time, solarpower ({hub_solarpower:4.1f}W) minimum charge power ({MIN_CHARGE_POWER}W) and bypass state ({hub.getBypass()}), hub could contribute {limit:4.1f}W - Decision path: {path}')
+    log.info(
+        f"Based on time, solarpower ({hub_solarpower:4.1f}W) minimum charge power ({MIN_CHARGE_POWER}W) and bypass state ({hub.getBypass()}), hub could contribute {limit:4.1f}W - Decision path: {path}"
+    )
     return int(limit)
 
 
 def limitHomeInput(client: mqtt_client):
     global location
 
-    hub = client._userdata['hub']
-    log.info(f'{hub}')
-    inv = client._userdata['dtu']
-    log.info(f'{inv}')
-    smt = client._userdata['smartmeter']
-    log.info(f'{smt}')
-    log.info(f'{blue}SFC: BatteryTarget: {hub.batteryTarget}, SoC at sunrise: {hub.sunriseSoC}, SoC increase: {hub.daySoCIncrease}{reset}')
+    hub = client._userdata["hub"]
+    log.info(f"{hub}")
+    inv = client._userdata["dtu"]
+    log.info(f"{inv}")
+    smt = client._userdata["smartmeter"]
+    log.info(f"{smt}")
+    log.info(
+        f"{blue}SFC: BatteryTarget: {hub.batteryTarget}, SoC at sunrise: {hub.sunriseSoC}, SoC increase: {hub.daySoCIncrease}{reset}"
+    )
 
     # ensure we have data to work on
     if not (hub.ready() and inv.ready() and smt.ready()):
         return
-    
+
     inv_limit = inv.getLimit()
     hub_limit = hub.getLimit()
     direct_limit = None
@@ -572,17 +666,17 @@ def getOpts(configtype) -> dict:
 
 def limit_callback(client: mqtt_client, force=False):
     global lastTriggerTS
-    dtu = client._userdata['dtu']
-    #log.info("Smartmeter Callback!")
+    dtu = client._userdata["dtu"]
+    # log.info("Smartmeter Callback!")
     now = datetime.now()
     if lastTriggerTS:
         elapsed = now - lastTriggerTS
         # ensure the limit function is not called too often (avoid flooding DTUs)
         if elapsed.total_seconds() >= steering_interval or force:
             if force and dtu.hasPendingUpdate():
-                log.info(f'Force update blocked due to pending DTU update!')
-                return False  
-            
+                log.info("Force update blocked due to pending DTU update!")
+                return False
+
             lastTriggerTS = now
             limitHomeInput(client)
             return True
@@ -794,13 +888,13 @@ def main(argv):
         log.info(f"MQTT Host: {mqtt_host}:{mqtt_port}")
 
     if mqtt_user is None or mqtt_pwd is None:
-        log.info(f"MQTT User is not set, assuming authentication not needed")
+        log.info("MQTT User is not set, assuming authentication not needed")
     else:
         log.info(f"MQTT User: {mqtt_user}/{mqtt_pwd}")
 
     if sf_device_id is None:
         log.error(
-            f"You need to provide a SF_DEVICE_ID (environment variable SF_DEVICE_ID or option --device)!"
+            "You need to provide a SF_DEVICE_ID (environment variable SF_DEVICE_ID or option --device)!"
         )
         sys.exit()
     else:
