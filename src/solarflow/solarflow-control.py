@@ -12,7 +12,10 @@ import dtus
 import smartmeters
 from utils import RepeatedTimer, str2bool
 
-FORMAT = "%(asctime)s:%(levelname)s: %(message)s"
+blue = "\x1b[34;20m"
+reset = "\x1b[0m"
+
+FORMAT = '%(asctime)s:%(levelname)s: %(message)s'
 logging.basicConfig(stream=sys.stdout, level="INFO", format=FORMAT)
 log = logging.getLogger("")
 
@@ -112,6 +115,10 @@ BATTERY_DISCHARGE_START = config.getint(
 # the maximum allowed inverter output
 MAX_INVERTER_LIMIT = config.getint("control", "max_inverter_limit", fallback=None) or int(os.environ.get("MAX_INVERTER_LIMIT", 800))
 MAX_INVERTER_INPUT = config.getint("control", "max_inverter_input", fallback=None) or int(os.environ.get("MAX_INVERTER_INPUT", 400))
+MAX_INVERTER_LIMIT =    config.getint('control', 'max_inverter_limit', fallback=None) \
+                        or int(os.environ.get('MAX_INVERTER_LIMIT',800))
+MAX_INVERTER_INPUT =    config.getint('control', 'max_inverter_input', fallback=None) \
+                        or int(os.environ.get('MAX_INVERTER_INPUT',400))
 
 # this controls the internal calculation of limited growth for setting inverter limits
 INVERTER_START_LIMIT = 5
@@ -312,40 +319,25 @@ def getSFPowerLimit(hub, demand) -> int:
             limit = hub.getInverseMaxPower()
 
     if not hub.getBypass():
+        path += "1." 
+        limit = min(demand,MAX_DISCHARGE_POWER)
         if hub_solarpower - demand > MIN_CHARGE_POWER:
-            path += "1."
             if hub_solarpower - MIN_CHARGE_POWER < MAX_DISCHARGE_POWER:
-                path += "1."
-                limit = min(demand, MAX_DISCHARGE_POWER)
+                path += "1. (enough power to cover demand and minimum charge power)"
+                #limit = min(demand,MAX_DISCHARGE_POWER)
             else:
                 path += "2."
-                limit = min(demand, hub_solarpower - MIN_CHARGE_POWER)
-        if hub_solarpower - demand <= MIN_CHARGE_POWER:
-            path += "2."
-            if (
-                now < (sunrise + sunrise_off) or now > sunset - sunset_off
-            ) or DISCHARGE_DURING_DAYTIME:
-                path += "1."
-                # FEAT: we should not allow discharging in the sunrise window if battery is still below a certain threshold
-                # e.g. if the battery has just started charging do not discharge it again immediately
-                if (
-                    (sunrise < now < (sunrise + sunrise_off))
-                    and hub_electricLevel <= BATTERY_DISCHARGE_START
-                    and hub.batteryTarget != solarflow.BATTERY_TARGET_DISCHARGING
-                ):
-                    path += "1."
-                    limit = 0
-                else:
-                    path += "2."
-                    limit = min(demand, MAX_DISCHARGE_POWER)
+                limit = min(demand,hub_solarpower - MIN_CHARGE_POWER)
+        if hub_solarpower - demand <= MIN_CHARGE_POWER:  
+            path += "3."
+            if ((now < (sunrise + sunrise_off) or now > (sunset - sunset_off)) or DISCHARGE_DURING_DAYTIME) and  hub.daySoCIncrease > BATTERY_DISCHARGE_START:
+                path += "1. (not enough power to cover demand and minimum charge power during night/dusk/dawn)"
+            elif (sunrise < now < sunrise + sunrise_off) and hub_electricLevel > BATTERY_LOW:
+                path += "2. (enough battery after sunrise to continue discharge)"
             else:
-                path += "2."
-                # limit = 0 if hub_solarpower - MIN_CHARGE_POWER < 0 and hub.getElectricLevel() < 100 else hub_solarpower - MIN_CHARGE_POWER
-                limit = (
-                    0
-                    if hub_solarpower - MIN_CHARGE_POWER < 0
-                    else hub_solarpower - MIN_CHARGE_POWER
-                )
+                path += "3. (not enough power to cover demand and minimum charge power during day)"
+                limit = 0
+
         if demand < 0:
             limit = 0
 
@@ -378,21 +370,23 @@ def getSFPowerLimit(hub, demand) -> int:
         # check if we should run a full charge cycle today
         hub.checkChargeThrough(daylight)
 
-    log.info(
-        f"Based on time, solarpower ({hub_solarpower:4.1f}W) minimum charge power ({MIN_CHARGE_POWER}W) and bypass state ({hub.getBypass()}), hub could contribute {limit:4.1f}W - Decision path: {path}"
-    )
+        # reset the dayly SoC increase
+        hub.resetSocIncrease()
+
+    log.info(f'Based on time, solarpower ({hub_solarpower:4.1f}W) minimum charge power ({MIN_CHARGE_POWER}W) and bypass state ({hub.getBypass()}), hub could contribute {limit:4.1f}W - Decision path: {path}')
     return int(limit)
 
 
 def limitHomeInput(client: mqtt_client):
     global location
 
-    hub = client._userdata["hub"]
-    log.info(f"{hub}")
-    inv = client._userdata["dtu"]
-    log.info(f"{inv}")
-    smt = client._userdata["smartmeter"]
-    log.info(f"{smt}")
+    hub = client._userdata['hub']
+    log.info(f'{hub}')
+    inv = client._userdata['dtu']
+    log.info(f'{inv}')
+    smt = client._userdata['smartmeter']
+    log.info(f'{smt}')
+    log.info(f'{blue}SFC: BatteryTarget: {hub.batteryTarget}, SoC at sunrise: {hub.sunriseSoC}, SoC increase: {hub.daySoCIncrease}{reset}')
 
     # ensure we have data to work on
     if not (hub.ready() and inv.ready() and smt.ready()):
