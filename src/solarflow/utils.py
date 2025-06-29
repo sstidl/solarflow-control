@@ -54,9 +54,7 @@ class TimewindowBuffer:
         now = datetime.now()
         self.values.append((now, value))
 
-        self.values = list(
-            filter(lambda v: isExpired(v, now, self.minutes * 60), self.values)
-        )
+        self.values = list(filter(lambda v: isExpired(v, now, self.minutes * 60), self.values))
         # self.aggregated_values = list(filter(lambda v: isExpired(v, now, self.minutes*60),self.aggregated_values))
 
         # create moving averages of 10s back from most recent values
@@ -102,18 +100,14 @@ class TimewindowBuffer:
         n = len(self.aggregated_values)
         if n == 0:
             return 0
-        return round(
-            reduce(lambda a, b: a + b, [v[1] for v in self.aggregated_values]) / n, 1
-        )
+        return round(reduce(lambda a, b: a + b, [v[1] for v in self.aggregated_values]) / n, 1)
 
     # weighted moving average
     def wavg(self) -> float:
         n = len(self.aggregated_values)
         if n == 0:
             return 0
-        return round(
-            reduce(lambda a, b: a + b, self.aggregated_values) / ((n * (n + 1)) / 2), 1
-        )
+        return round(reduce(lambda a, b: a + b, self.aggregated_values) / ((n * (n + 1)) / 2), 1)
 
     # n^2 weighted moving average
     def qwavg(self) -> float:
@@ -121,8 +115,7 @@ class TimewindowBuffer:
         if n == 0:
             return 0
         return round(
-            reduce(lambda a, b: a + b, self.aggregated_values)
-            / ((n * (n + 1) * (2 * n + 1)) / 6),
+            reduce(lambda a, b: a + b, self.aggregated_values) / ((n * (n + 1) * (2 * n + 1)) / 6),
             1,
         )
 

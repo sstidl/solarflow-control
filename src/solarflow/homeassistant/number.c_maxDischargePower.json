@@ -9,9 +9,7 @@
   "step": 1,
   "mode": "box",
   "dev": {
-    "identifiers": [
-      "solarflow-control"
-    ],
+    "identifiers": ["solarflow-control"],
     "manufacturer": "Reinhard Weber",
     "model": "Solarflow Control",
     "name": "Solarflow Control",

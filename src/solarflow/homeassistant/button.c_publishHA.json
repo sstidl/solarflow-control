@@ -1,13 +1,8 @@
 {
-  "name": "Sunset Offset",
-  "cmd_t": "~control/sunsetOffset",
-  "stat_t": "~control/sunsetOffset",
-  "uniq_id": "{{ device_id }}-sunsetOffset",
-  "unit_of_meas": "m",
-  "max": 500,
-  "min": 0,
-  "step": 1,
-  "mode": "box",
+  "name": "republish HA Templates (Discovery)",
+  "cmd_t": "~control/publishHA",
+  "uniq_id": "{{ device_id }}-publishHA",
+  "payload_press": "update",
   "dev": {
     "identifiers": ["solarflow-control"],
     "manufacturer": "Reinhard Weber",
