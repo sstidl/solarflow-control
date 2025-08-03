@@ -2,7 +2,7 @@
   "name": "DryRun",
   "cmd_t": "~control/dryRun",
   "stat_t": "~control/dryRun",
-  "uniq_id": "{{ device_id }}-dryrun",
+  "uniq_id": "{{ device_id }}-c_dryrun",
   "dev_cla": "switch",
   "payload_on": "ON",
   "payload_off": "OFF",

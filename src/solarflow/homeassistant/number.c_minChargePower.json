@@ -2,7 +2,7 @@
   "name": "Minimum Charge Power",
   "cmd_t": "~control/minChargePower",
   "stat_t": "~control/minChargePower",
-  "uniq_id": "{{ device_id }}-minChargePower",
+  "uniq_id": "{{ device_id }}-c_minChargePower",
   "unit_of_meas": "W",
   "max": 1000,
   "min": 0,

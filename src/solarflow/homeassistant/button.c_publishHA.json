@@ -1,7 +1,7 @@
 {
   "name": "republish HA Templates (Discovery)",
   "cmd_t": "~control/publishHA",
-  "uniq_id": "{{ device_id }}-publishHA",
+  "uniq_id": "{{ device_id }}-c_publishHA",
   "payload_press": "update",
   "dev": {
     "identifiers": ["solarflow-control"],

@@ -1,8 +1,8 @@
 {
-    "name": "Battery High Charging Limit",
-    "cmd_t": "~control/batteryHigh",
-    "stat_t": "~control/batteryHigh",
-    "uniq_id": "{{ device_id }}-batteryHigh",
+    "name": "SF Battery Discharging Limit",
+    "cmd_t": "~control/batteryLow",
+    "stat_t": "~control/batteryLow",
+    "uniq_id": "{{ device_id }}-c_batteryLowLimit",
     "unit_of_meas": "%",
     "max": 100,
     "min": 0,

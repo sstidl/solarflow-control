@@ -2,7 +2,7 @@
   "name": "Control Bypass",
   "cmd_t": "~control/controlBypass",
   "stat_t": "~control/controlBypass",
-  "uniq_id": "{{ device_id }}-controlBypass",
+  "uniq_id": "{{ device_id }}-c_controlBypass",
   "dev_cla": "switch",
   "payload_on": "ON",
   "payload_off": "OFF",

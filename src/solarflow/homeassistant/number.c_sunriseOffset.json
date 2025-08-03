@@ -2,7 +2,7 @@
   "name": "Sunrise Offset",
   "cmd_t": "~control/sunriseOffset",
   "stat_t": "~control/sunriseOffset",
-  "uniq_id": "{{ device_id }}-sunriseOffset",
+  "uniq_id": "{{ device_id }}-c_sunriseOffset",
   "unit_of_meas": "m",
   "max": 500,
   "min": 0,

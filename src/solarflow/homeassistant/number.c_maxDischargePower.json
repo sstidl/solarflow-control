@@ -2,7 +2,7 @@
   "name": "Maximum Discharge Power",
   "cmd_t": "~control/maxDischargePower",
   "stat_t": "~control/maxDischargePower",
-  "uniq_id": "{{ device_id }}-maxDischargePower",
+  "uniq_id": "{{ device_id }}-c_maxDischargePower",
   "unit_of_meas": "W",
   "max": 1200,
   "min": 0,

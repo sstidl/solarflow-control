@@ -2,7 +2,7 @@
   "name": "Charge Through Mode",
   "cmd_t": "~control/chargeThrough",
   "stat_t": "~control/chargeThrough",
-  "uniq_id": "{{ device_id }}-chargeThrough",
+  "uniq_id": "{{ device_id }}-c_chargeThrough",
   "dev_cla": "switch",
   "payload_on": "ON",
   "payload_off": "OFF",

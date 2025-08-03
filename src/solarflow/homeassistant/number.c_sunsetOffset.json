@@ -2,7 +2,7 @@
   "name": "Sunset Offset",
   "cmd_t": "~control/sunsetOffset",
   "stat_t": "~control/sunsetOffset",
-  "uniq_id": "{{ device_id }}-sunsetOffset",
+  "uniq_id": "{{ device_id }}-c_sunsetOffset",
   "unit_of_meas": "m",
   "max": 500,
   "min": 0,

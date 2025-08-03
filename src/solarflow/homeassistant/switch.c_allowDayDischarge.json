@@ -2,7 +2,7 @@
   "name": "Allow Day Discharge",
   "cmd_t": "~control/dischargeDuringDaytime",
   "stat_t": "~control/dischargeDuringDaytime",
-  "uniq_id": "{{ device_id }}-dischargeDuringDaytime",
+  "uniq_id": "{{ device_id }}-c_dischargeDuringDaytime",
   "dev_cla": "switch",
   "payload_on": "ON",
   "payload_off": "OFF",
